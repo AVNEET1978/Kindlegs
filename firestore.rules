@@ -1,0 +1,110 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 0.1 Context-Aware Helper Primitives
+    function isSignedIn() { return request.auth != null; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isEmailVerified() { return request.auth.token.email_verified == true; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+
+    // 1. User Rules
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.keys().hasAll(['email', 'createdAt']) &&
+               data.keys().size() <= 4 &&
+               data.email is string && data.email.size() <= 256 &&
+               data.email == request.auth.token.email &&
+               data.createdAt is timestamp &&
+               (data.get('displayName', null) == null || data.displayName is string) &&
+               (data.get('photoURL', null) == null || data.photoURL is string);
+      }
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow create: if isValidId(userId) && isOwner(userId) && isEmailVerified() && isValidUser(incoming()) && incoming().createdAt == request.time;
+      allow update: if isValidId(userId) && isOwner(userId) && isEmailVerified() && isValidUser(incoming()) && 
+                    incoming().email == existing().email &&
+                    incoming().createdAt == existing().createdAt &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL']);
+    }
+
+    // 2. Pet Rules
+    match /pets/{petId} {
+      function isValidPet(data) {
+        return data.keys().hasAll(['name', 'species', 'ownerId', 'createdAt']) &&
+               data.name is string && data.name.size() <= 100 &&
+               data.species is string && data.species.size() <= 50 &&
+               data.ownerId == request.auth.uid &&
+               data.createdAt is timestamp &&
+               (data.get('breed', null) == null || data.breed is string) &&
+               (data.get('gender', null) == null || data.gender is string) &&
+               (data.get('color', null) == null || data.color is string) &&
+               (data.get('imageUrl', null) == null || data.imageUrl is string);
+      }
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow get: if isValidId(petId) && isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isValidId(petId) && isSignedIn() && isEmailVerified() && isValidPet(incoming()) && incoming().createdAt == request.time;
+      allow update: if isValidId(petId) && isSignedIn() && isEmailVerified() && existing().ownerId == request.auth.uid && isValidPet(incoming()) &&
+                    incoming().ownerId == existing().ownerId &&
+                    incoming().createdAt == existing().createdAt &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['name', 'species', 'breed', 'dob', 'gender', 'weight', 'color', 'imageUrl']);
+      allow delete: if isValidId(petId) && isSignedIn() && existing().ownerId == request.auth.uid;
+
+      // 3. Medical Record Rules
+      match /records/{recordId} {
+        function isValidRecord(data) {
+          return data.keys().hasAll(['petId', 'type', 'date', 'title', 'createdAt']) &&
+                 data.petId == petId &&
+                 data.type in ['vaccine', 'deworming', 'prescription', 'report', 'visit'] &&
+                 data.title is string && data.title.size() <= 200 &&
+                 data.date is string && data.date.size() <= 20 &&
+                 data.createdAt is timestamp &&
+                 (data.get('imageUrl', null) == null || data.imageUrl is string) &&
+                 (data.get('summary', null) == null || data.summary is string) &&
+                 (data.get('nextDueDate', null) == null || data.nextDueDate is string);
+        }
+        function petExistsAndOwned() {
+          return get(/databases/$(database)/documents/pets/$(petId)).data.ownerId == request.auth.uid;
+        }
+
+        allow list: if isSignedIn() && petExistsAndOwned() && resource.data.petId == petId;
+        allow get: if isValidId(recordId) && isSignedIn() && petExistsAndOwned() && resource.data.petId == petId;
+        allow create: if isValidId(recordId) && isSignedIn() && isEmailVerified() && petExistsAndOwned() && isValidRecord(incoming()) && incoming().createdAt == request.time;
+        allow update: if isValidId(recordId) && isSignedIn() && isEmailVerified() && petExistsAndOwned() && isValidRecord(incoming()) &&
+                      incoming().petId == existing().petId &&
+                      incoming().createdAt == existing().createdAt &&
+                      incoming().diff(existing()).affectedKeys().hasOnly(['type', 'date', 'title', 'content', 'imageUrl', 'clinicName', 'stickersFound', 'stampsFound', 'summary', 'nextDueDate', 'metadata']);
+        allow delete: if isValidId(recordId) && isSignedIn() && petExistsAndOwned();
+      }
+
+      // 4. Reminder Rules
+      match /reminders/{reminderId} {
+        function isValidReminder(data) {
+          return data.keys().hasAll(['petId', 'title', 'dueDate', 'status', 'createdAt']) &&
+                 data.petId == petId &&
+                 data.title is string && data.title.size() <= 200 &&
+                 data.dueDate is string && data.dueDate.size() <= 20 &&
+                 data.status in ['pending', 'completed'] &&
+                 data.createdAt is timestamp;
+        }
+        function petExistsAndOwned() {
+          return get(/databases/$(database)/documents/pets/$(petId)).data.ownerId == request.auth.uid;
+        }
+
+        allow list: if isSignedIn() && petExistsAndOwned() && resource.data.petId == petId;
+        allow get: if isValidId(reminderId) && isSignedIn() && petExistsAndOwned() && resource.data.petId == petId;
+        allow create: if isValidId(reminderId) && isSignedIn() && isEmailVerified() && petExistsAndOwned() && isValidReminder(incoming()) && incoming().createdAt == request.time;
+        allow update: if isValidId(reminderId) && isSignedIn() && isEmailVerified() && petExistsAndOwned() && isValidReminder(incoming()) &&
+                      incoming().petId == existing().petId &&
+                      incoming().createdAt == existing().createdAt &&
+                      incoming().diff(existing()).affectedKeys().hasOnly(['title', 'dueDate', 'status']);
+        allow delete: if isValidId(reminderId) && isSignedIn() && petExistsAndOwned();
+      }
+    }
+  }
+}

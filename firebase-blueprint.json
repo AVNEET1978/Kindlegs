@@ -1,0 +1,92 @@
+{
+  "entities": {
+    "Pet": {
+      "title": "Pet",
+      "description": "Details of a pet registered in Kindlegs",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "species": { "type": "string" },
+        "breed": { "type": "string" },
+        "dob": { "type": "string", "format": "date" },
+        "gender": { "type": "string", "enum": ["male", "female"] },
+        "weight": { "type": "number" },
+        "color": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "species", "ownerId"]
+    },
+    "MedicalRecord": {
+      "title": "Medical Record",
+      "description": "A medical document or entry for a pet",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "petId": { "type": "string" },
+        "type": { "type": "string", "enum": ["vaccine", "deworming", "prescription", "report", "visit"] },
+        "date": { "type": "string", "format": "date" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "clinicName": { "type": "string" },
+        "stickersFound": { "type": "boolean" },
+        "stampsFound": { "type": "boolean" },
+        "summary": { "type": "string" },
+        "nextDueDate": { "type": "string" },
+        "metadata": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["petId", "type", "date", "title"]
+    },
+    "Reminder": {
+      "title": "Reminder",
+      "description": "A scheduled medical reminder for a pet",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "petId": { "type": "string" },
+        "type": { "type": "string" },
+        "title": { "type": "string" },
+        "dueDate": { "type": "string", "format": "date" },
+        "status": { "type": "string", "enum": ["pending", "completed"] },
+        "originalRecordId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["petId", "title", "dueDate", "status"]
+    },
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email"]
+    }
+  },
+  "firestore": {
+    "/pets/{petId}": {
+      "schema": "Pet",
+      "description": "Top-level collection for pets"
+    },
+    "/pets/{petId}/records/{recordId}": {
+      "schema": "MedicalRecord",
+      "description": "Medical records for a specific pet"
+    },
+    "/pets/{petId}/reminders/{reminderId}": {
+      "schema": "Reminder",
+      "description": "Reminders for a specific pet"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile data"
+    }
+  }
+}

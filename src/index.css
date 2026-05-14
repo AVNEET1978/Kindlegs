@@ -1,0 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif; /* Switching to Inter for Professional Polish as per instructions "Clean sans-serif font" */
+  
+  --color-grey-soft: #f9f9f9;
+  --color-grey-mid: #e5e7eb;
+  --color-grey-text: #6b7280;
+  
+  --radius-record: 20px;
+  --radius-card: 32px;
+}
+
+@layer base {
+  body {
+    @apply bg-white text-black font-sans antialiased;
+    color: var(--color-ink, #000000);
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

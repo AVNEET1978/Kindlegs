@@ -1,0 +1,8 @@
+{
+  "name": "Kindlegs",
+  "description": "A premium pet health record digital companion. Never lose your pet's medical history with AI-powered record scanning, vaccine tracking, and automated reminders.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": []
+}
