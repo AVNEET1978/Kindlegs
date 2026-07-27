@@ -1,15 +1,18 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { db, auth, handleFirestoreError, OperationType } from "../lib/firebase";
+import { compressImage } from "../lib/imageUtils";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { motion } from "motion/react";
-import { ChevronLeft, Camera, Upload } from "lucide-react";
+import { ChevronLeft, Camera, Upload, Check } from "lucide-react";
 
 export default function AddPet() {
   const navigate = useNavigate();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [image, setImage] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     species: "dog",
@@ -24,8 +27,15 @@ export default function AddPet() {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setImage(reader.result as string);
+      reader.onloadend = async () => {
+        const base64 = reader.result as string;
+        try {
+          const compressed = await compressImage(base64);
+          setImage(compressed);
+        } catch (error) {
+          console.error("Compression error:", error);
+          setImage(base64); // Fallback to original if compression fails
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -44,13 +54,38 @@ export default function AddPet() {
         ownerId: auth.currentUser.uid,
         createdAt: serverTimestamp(),
       });
-      navigate("/");
+      setIsSuccess(true);
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, "pets");
     } finally {
       setLoading(false);
     }
   };
+
+  if (isSuccess) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center space-y-8 animate-in fade-in zoom-in duration-500 text-center px-4">
+        <div className="w-24 h-24 bg-black text-white rounded-[40px] flex items-center justify-center shadow-2xl mx-auto">
+          <Check size={48} />
+        </div>
+        <div className="space-y-3">
+          <h1 className="text-3xl font-black">Registration Successful!</h1>
+          <p className="text-grey-text font-medium leading-relaxed max-w-xs mx-auto">
+            {formData.name} is now part of your pack. Let's add some medical records to get started.
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            localStorage.setItem("highlight_plus", "true");
+            navigate("/");
+          }}
+          className="w-full max-w-sm h-16 bg-black text-white rounded-[24px] font-bold shadow-xl active:scale-[0.98] transition-all"
+        >
+          Go to Dashboard
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
@@ -70,26 +105,47 @@ export default function AddPet() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6 pb-8">
-        <div className="flex justify-center py-4">
+        <div className="flex flex-col items-center gap-3 py-4">
           <input
             type="file"
-            ref={fileInputRef}
+            ref={cameraInputRef}
+            className="hidden"
+            accept="image/*"
+            capture="environment"
+            onChange={handleImageChange}
+          />
+          <input
+            type="file"
+            ref={galleryInputRef}
             className="hidden"
             accept="image/*"
             onChange={handleImageChange}
           />
           <div 
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => galleryInputRef.current?.click()}
             className="w-24 h-24 bg-grey-soft border border-grey-mid rounded-[24px] flex flex-col items-center justify-center text-grey-text hover:border-black hover:text-black transition-colors cursor-pointer shadow-sm relative overflow-hidden"
           >
             {image ? (
               <img src={image} alt="Pet Preview" className="w-full h-full object-cover" />
             ) : (
-              <>
-                <Camera size={24} />
-                <span className="text-[10px] font-bold mt-1 uppercase">Photo</span>
-              </>
+              <Camera size={24} />
             )}
+          </div>
+          <div className="flex flex-col gap-2 w-full max-w-[200px]">
+            <button 
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              className="px-4 py-3 bg-black text-white rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
+            >
+              <Camera size={14} /> Take a Photo
+            </button>
+            <button 
+              type="button"
+              onClick={() => galleryInputRef.current?.click()}
+              className="px-4 py-3 bg-white border border-grey-mid text-black rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-grey-soft transition-colors"
+            >
+              <Upload size={14} /> Upload from Device
+            </button>
           </div>
         </div>
 

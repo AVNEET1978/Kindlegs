@@ -10,21 +10,41 @@ export default function Profile() {
   const [pets, setPets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchPets = async () => {
-      if (!auth.currentUser) return;
+      const uid = auth.currentUser?.uid;
+      if (!uid) {
+        setLoading(false);
+        return;
+      }
       try {
-        const q = query(collection(db, "pets"), where("ownerId", "==", auth.currentUser.uid));
+        const q = query(collection(db, "pets"), where("ownerId", "==", uid));
         const querySnapshot = await getDocs(q);
         setPets(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      } catch (error) {
-        handleFirestoreError(error, OperationType.LIST, "pets");
+        setError(null);
+      } catch (err: any) {
+        console.error("Profile fetch error:", err);
+        setError(err.message || "Failed to load profiles.");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchPets();
-  }, []);
+    
+    const timeout = setTimeout(() => {
+      setLoading(prev => {
+        if (prev) {
+          console.warn("Profile safety timeout triggered");
+          return false;
+        }
+        return prev;
+      });
+    }, 6000);
+    return () => clearTimeout(timeout);
+  }, [auth.currentUser?.uid]);
 
   const handleDeletePet = async (petId: string) => {
     if (window.confirm("Are you sure you want to remove this pet profile? All records will be deleted.")) {
@@ -39,6 +59,21 @@ export default function Profile() {
   };
 
   if (loading) return <div className="h-full flex items-center justify-center">Loading pet profiles...</div>;
+
+  if (error) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-6 text-center space-y-4">
+        <div className="text-red-500 font-bold">Error</div>
+        <div className="text-sm text-gray-600">{error}</div>
+        <button 
+          onClick={() => { setLoading(true); window.location.reload(); }}
+          className="px-6 py-2 bg-black text-white rounded-xl text-sm font-bold"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-10 animate-in fade-in duration-700 pb-8">

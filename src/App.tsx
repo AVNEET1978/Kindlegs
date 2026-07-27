@@ -13,6 +13,7 @@ import Shell from "./components/Shell";
 // Screens
 import Home from "./screens/Home";
 import Records from "./screens/Records";
+import RecordDetails from "./screens/RecordDetails";
 import Scan from "./screens/Scan";
 import Reminders from "./screens/Reminders";
 import Profile from "./screens/Profile";
@@ -41,7 +42,7 @@ export default function App() {
             });
           }
         } catch (error) {
-          handleFirestoreError(error, OperationType.WRITE, `users/${user.uid}`);
+          console.error("Auth sync error:", error);
         }
       }
       setLoading(false);
@@ -74,6 +75,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/records" element={<Records />} />
+          <Route path="/pets/:petId/records/:recordId" element={<RecordDetails />} />
           <Route path="/scan" element={<Scan />} />
           <Route path="/reminders" element={<Reminders />} />
           <Route path="/profile" element={<Profile />} />

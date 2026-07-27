@@ -1,165 +1,262 @@
 import { useEffect, useState } from "react";
-import { db, auth, handleFirestoreError, OperationType } from "../lib/firebase";
+import { db, auth } from "../lib/firebase";
+import { useNavigate } from "react-router-dom";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
-import { motion } from "motion/react";
-import { FileText, Calendar } from "lucide-react";
+import { motion } from "framer-motion";
+import { Search, Beaker, Pill, Activity, FileText, Stethoscope, ChevronRight, Bell, ShieldCheck } from "lucide-react";
 
 interface Pet {
   id: string;
   name: string;
+  breed?: string;
+  species?: string;
+  imageUrl?: string;
   [key: string]: any;
 }
 
 export default function Records() {
+  const navigate = useNavigate();
   const [pets, setPets] = useState<Pet[]>([]);
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedPetId, setSelectedPetId] = useState<string>("all");
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!auth.currentUser) return;
+      const uid = auth.currentUser?.uid;
+      if (!uid) {
+        setLoading(false);
+        return;
+      }
 
       try {
-        // Fetch pets
-        const petsQ = query(collection(db, "pets"), where("ownerId", "==", auth.currentUser.uid));
+        const petsQ = query(collection(db, "pets"), where("ownerId", "==", uid));
         const petsSnap = await getDocs(petsQ);
         const petsData = petsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Pet[];
         setPets(petsData);
 
-        // Fetch records for all pets (simplified for now)
         let allRecords: any[] = [];
         for (const pet of petsData) {
-          const recQ = query(collection(db, "pets", pet.id, "records"), orderBy("date", "desc"));
+          const recQ = query(
+            collection(db, "pets", pet.id, "records"), 
+            where("ownerId", "==", uid),
+            orderBy("date", "desc")
+          );
           const recSnap = await getDocs(recQ);
           const petRecords = recSnap.docs.map(doc => ({
             id: doc.id,
+            petId: pet.id,
             petName: pet.name,
+            petImageUrl: pet.imageUrl,
             ...doc.data()
           }));
           allRecords = [...allRecords, ...petRecords];
         }
 
-        // Sort by date descending
         allRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setRecords(allRecords);
-      } catch (error) {
-        handleFirestoreError(error, OperationType.LIST, "records");
+        setError(null);
+      } catch (err: any) {
+        console.error("Records fetch error:", err);
+        setError(err.message || "Failed to load timeline.");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchData();
-  }, []);
+    
+    const timeout = setTimeout(() => {
+      setLoading(prev => prev ? false : prev);
+    }, 6000);
+    return () => clearTimeout(timeout);
+  }, [auth.currentUser?.uid]);
 
-  const filteredRecords = selectedPetId === "all"
-    ? records
-    : records.filter(r => r.petId === selectedPetId);
+  const filteredRecords = records.filter(record => {
+    const matchesTab = activeTab === "All" || record.type?.toLowerCase() === activeTab.toLowerCase().replace(/s$/, "");
+    const matchesSearch = record.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         record.clinicName?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesTab && matchesSearch;
+  });
 
-  // Group by year and month
   const groupedRecords: { [key: string]: any[] } = {};
   filteredRecords.forEach(record => {
     const date = new Date(record.date);
-    const key = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+    const key = date.toLocaleString('default', { month: 'long', year: 'numeric' }).toUpperCase();
     if (!groupedRecords[key]) groupedRecords[key] = [];
     groupedRecords[key].push(record);
   });
 
-  if (loading) return <div className="h-full flex items-center justify-center">Loading timeline...</div>;
+  if (loading) return <div className="h-full flex items-center justify-center font-bold text-gray-400">Loading records...</div>;
+
+  if (error) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-6 text-center space-y-4">
+        <div className="text-red-500 font-bold">Error</div>
+        <div className="text-sm text-gray-600">{error}</div>
+        <button onClick={() => { setLoading(true); window.location.reload(); }} className="px-6 py-2 bg-black text-white rounded-xl text-sm font-bold">Retry</button>
+      </div>
+    );
+  }
+
+  const activePet = pets[0]; // For demo/initial screen focus
+
+  // Find the most urgent upcoming reminder
+  const nextReminders = records
+    .filter(r => r.nextDueDate && new Date(r.nextDueDate) >= new Date())
+    .sort((a, b) => new Date(a.nextDueDate).getTime() - new Date(b.nextDueDate).getTime());
+  
+  const mostUrgent = nextReminders[0];
+  const daysTillNext = mostUrgent 
+    ? Math.ceil((new Date(mostUrgent.nextDueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    : null;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      <header className="space-y-4 text-center">
-        <h1 className="text-3xl font-display font-black tracking-tight">Health Timeline</h1>
+    <div className="pb-24 space-y-6 animate-in fade-in duration-500">
+      {/* Header */}
+      <header className="flex items-center justify-between px-1">
+        <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center text-white font-bold text-sm">
+          {auth.currentUser?.displayName?.substring(0, 2).toUpperCase() || "KL"}
+        </div>
+        <h1 className="text-base font-bold">Health Timeline</h1>
+        <button className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:text-black transition-colors">
+          <Search size={20} />
+        </button>
+      </header>
 
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide justify-center">
-          <button
-            onClick={() => setSelectedPetId("all")}
-            className={`px-4 h-10 rounded-full text-xs font-bold uppercase tracking-widest whitespace-nowrap border ${selectedPetId === "all" ? 'bg-black text-white border-black' : 'bg-white text-gray-400 border-gray-100'}`}
-          >
-            All Pack
-          </button>
-          {pets.map(pet => (
+      {/* Pet Summary Bar */}
+      {activePet && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-3 text-left">
+            <img src={activePet.imageUrl || "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=100"} className="w-10 h-10 rounded-lg object-cover" alt="" />
+            <div>
+              <h4 className="text-[13px] font-bold">{activePet.name}</h4>
+              <p className="text-[11px] text-gray-400 font-medium">
+                {activePet.breed || activePet.species} • {activePet.gender || "Male"}
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            {mostUrgent ? (
+              <>
+                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Next Due</p>
+                <p className="text-[11px] font-bold text-gray-900 leading-tight truncate max-w-[100px]">{mostUrgent.title}</p>
+                <p className={`text-[11px] font-bold ${daysTillNext && daysTillNext <= 14 ? "text-orange-600" : "text-green-600"}`}>
+                  {daysTillNext === 0 ? "Today" : daysTillNext === 1 ? "Tomorrow" : `in ${daysTillNext} days`}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Status</p>
+                <p className="text-[11px] font-bold text-green-600">Up to date</p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Search Input */}
+      <div className="relative">
+        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-gray-400">
+          <Search size={16} />
+        </div>
+        <input 
+          type="text" 
+          placeholder="Search records" 
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full h-12 pl-11 pr-4 bg-gray-50 border-none rounded-2xl text-sm focus:ring-1 focus:ring-black/5 placeholder:text-gray-400"
+        />
+      </div>
+
+      {/* Filter Chips */}
+      <div className="flex flex-col gap-4">
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
+          {["All", "Vaccines", "Reports", "Prescriptions", "Deworming"].map(tab => (
             <button
-              key={pet.id}
-              onClick={() => setSelectedPetId(pet.id)}
-              className={`px-4 h-10 rounded-full text-xs font-bold uppercase tracking-widest whitespace-nowrap border ${selectedPetId === pet.id ? 'bg-black text-white border-black' : 'bg-white text-gray-400 border-gray-100'}`}
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-5 h-9 rounded-full text-[11px] font-bold transition-all whitespace-nowrap ${activeTab === tab ? "bg-black text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
             >
-              {pet.name}’s
+              {tab}
             </button>
           ))}
         </div>
-      </header>
+        {activeTab !== "All" && (
+          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">
+            {filteredRecords.length} {activeTab} Records Found
+          </p>
+        )}
+      </div>
 
-      {records.length === 0 ? (
-        <div className="pt-12 text-center space-y-4">
-           <div className="w-16 h-16 bg-grey-soft rounded-full flex items-center justify-center mx-auto text-grey-text">
-             <FileText size={32} />
-           </div>
-           <p className="text-gray-500 font-medium">Your timeline is empty.<br/>Scan a record to get started.</p>
-        </div>
-      ) : (
-        <div className="space-y-12">
-          {Object.entries(groupedRecords).map(([group, groupRecords]) => (
-            <div key={group} className="space-y-6">
-              <div className="flex flex-col items-center gap-2">
-                 <h2 className="text-[12px] font-bold uppercase tracking-widest text-[#111]">{group}</h2>
-                 <div className="w-8 h-0.5 bg-black rounded-full" />
-              </div>
-
-              <div className="space-y-4">
-                {groupRecords.map((record) => (
-                  <TimelineCard key={record.id} record={record} />
-                ))}
-              </div>
+      {/* Records List */}
+      <div className="space-y-8">
+        {Object.entries(groupedRecords).length > 0 ? Object.entries(groupedRecords).map(([month, monthRecords]) => (
+          <div key={month} className="space-y-4">
+            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest text-left px-1">{month}</h3>
+            <div className="space-y-3">
+              {monthRecords.map(record => (
+                <div 
+                  key={record.id} 
+                  onClick={() => navigate(`/pets/${record.petId}/records/${record.id}`)}
+                  className="bg-white rounded-[24px] border border-gray-100 p-4 flex items-center justify-between shadow-sm cursor-pointer hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-4 text-left">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${getBgForType(record.type)}`}>
+                       {getIconForType(record.type)}
+                    </div>
+                    <div>
+                      <h4 className="text-[14px] font-bold leading-tight">{record.title}</h4>
+                      <p className="text-[11px] text-gray-400 font-medium">
+                        {new Date(record.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })} • {record.clinicName || "Clinic"}
+                      </p>
+                      {record.nextDueDate && (
+                         <p className={`text-[10px] font-bold mt-0.5 ${new Date(record.nextDueDate) < new Date() ? "text-red-500" : "text-green-600"}`}>
+                           Next Due: {new Date(record.nextDueDate).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
+                           {new Date(record.nextDueDate) < new Date() && " (Overdue)"}
+                         </p>
+                      )}
+                    </div>
+                  </div>
+                  {record.imageUrl && (
+                    <div className="w-12 h-12 bg-gray-50 rounded-lg overflow-hidden border border-gray-100">
+                      <img src={record.imageUrl} className="w-full h-full object-cover" alt="" />
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        )) : (
+          <div className="py-20 text-center space-y-4">
+             <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto text-gray-300">
+               <FileText size={32} />
+             </div>
+             <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">No matching records</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-function TimelineCard({ record }: { record: any, key?: any }) {
-  const getIcon = () => {
-    switch (record.type) {
-      case 'vaccine': return "💉";
-      case 'deworming': return "💊";
-      case 'prescription': return "📋";
-      case 'report': return "📝";
-      default: return "🐾";
-    }
-  };
+function getBgForType(type: string) {
+  switch (type?.toLowerCase()) {
+    case 'vaccine': return "bg-blue-50 text-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.1)]";
+    case 'prescription': return "bg-red-50 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.1)]";
+    case 'deworming': return "bg-orange-50 text-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.1)]";
+    default: return "bg-purple-50 text-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.1)]";
+  }
+}
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      className="bg-white border border-grey-mid rounded-[radius-record] p-6 flex flex-col items-center gap-4 transition-all hover:shadow-lg group cursor-pointer text-center"
-    >
-      <div className="w-16 h-16 bg-grey-soft rounded-2xl flex items-center justify-center text-3xl group-hover:bg-black group-hover:text-white transition-colors flex-shrink-0 mx-auto">
-        {getIcon()}
-      </div>
-
-      <div className="space-y-1">
-        <h3 className="text-[16px] font-bold text-black">{record.title}</h3>
-        <p className="text-[13px] text-grey-text font-medium flex flex-col items-center gap-1">
-          <span className="capitalize font-bold">{record.type}</span>
-          <span className="opacity-50 text-[11px]">{record.clinicName || 'Home Administered'}</span>
-        </p>
-      </div>
-
-      <div className="flex items-center gap-2">
-        {record.stickersFound && (
-          <div className="px-3 py-1 bg-white border border-dashed border-grey-mid rounded-lg text-[8px] font-black opacity-30">
-             STICKER FOUND
-          </div>
-        )}
-        {!record.stickersFound && record.imageUrl && (
-           <div className="text-[10px] font-black text-grey-text/40 bg-grey-soft px-3 py-1 rounded-md">IMAGE</div>
-        )}
-      </div>
-    </motion.div>
-  );
+function getIconForType(type: string) {
+  switch (type?.toLowerCase()) {
+    case 'vaccine': return <ShieldCheck size={20} />;
+    case 'prescription': return <Pill size={20} />;
+    case 'deworming': return <Activity size={20} />;
+    case 'report': return <FileText size={20} />;
+    default: return <Stethoscope size={20} />;
+  }
 }
