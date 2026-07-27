@@ -11,15 +11,15 @@ service cloud.firestore {
     function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
-    function isEmailVerified() { return request.auth.token.email_verified == true; }
+    function isEmailVerified() { return request.auth.token.email_verified == true || request.auth.provider_id == 'anonymous'; }
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
 
     // 1. User Rules
     match /users/{userId} {
       function isValidUser(data, isUpdate) {
-        return (isUpdate || data.keys().hasAll(['email', 'createdAt'])) &&
+        return (isUpdate || data.keys().hasAll(['createdAt'])) &&
                data.keys().size() <= 10 &&
-               (!data.has('email') || (data.email is string && data.email.size() <= 256 && data.email == request.auth.token.email)) &&
+               (!data.has('email') || (data.email is string && data.email.size() <= 256)) &&
                (!data.has('createdAt') || data.createdAt is timestamp) &&
                (!data.has('displayName') || (data.displayName is string && data.displayName.size() <= 200)) &&
                (!data.has('photoURL') || (data.photoURL is string && data.photoURL.size() <= 1000));
