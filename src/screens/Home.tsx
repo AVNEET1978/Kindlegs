@@ -8,6 +8,8 @@ import { Plus, Camera, FileText, Calendar, Clock, ChevronRight, Activity, Beaker
 import PetSwitcher from "../components/PetSwitcher";
 import PetPassportModal from "../components/PetPassportModal";
 import WeightTrackerModal from "../components/WeightTrackerModal";
+import VetLookupModal from "../components/VetLookupModal";
+import { Droplets } from "lucide-react";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -24,6 +26,7 @@ export default function Home() {
   // Boop Modal States
   const [isPassportOpen, setIsPassportOpen] = useState(false);
   const [isWeightOpen, setIsWeightOpen] = useState(false);
+  const [isVetLookupOpen, setIsVetLookupOpen] = useState(false);
 
   const fetchPets = async () => {
     if (!auth.currentUser) {
@@ -307,11 +310,49 @@ export default function Home() {
           </button>
 
           <button 
-            onClick={() => setIsPassportOpen(true)} 
-            className="flex flex-col items-center justify-center gap-2 bg-gray-50 border border-gray-100 hover:bg-gray-100 h-[85px] rounded-2xl text-gray-800 transition-colors"
+            onClick={() => navigate("/blood-match")} 
+            className="flex flex-col items-center justify-center gap-2 bg-amber-50 border border-amber-200/80 hover:bg-amber-100 h-[85px] rounded-2xl text-amber-950 transition-colors relative overflow-hidden"
           >
-            <Share2 size={20} className="text-black" />
-            <span className="text-[10px] font-bold">Share Vet</span>
+            <Droplets size={20} className="text-amber-800" />
+            <span className="text-[10px] font-bold text-amber-900">Blood Match</span>
+          </button>
+        </div>
+
+        {/* Emergency Blood Match Banner Card */}
+        <div className="mt-4 bg-gradient-to-r from-stone-900 to-amber-950 text-white p-5 rounded-3xl shadow-lg border border-amber-900/40 flex items-center justify-between">
+          <div className="space-y-1 pr-3 text-left">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+              <span className="text-[9px] font-bold tracking-widest uppercase text-amber-300">RAINBOW CROSSING NETWORK</span>
+            </div>
+            <h3 className="text-base font-black text-white leading-tight">Emergency Blood Match</h3>
+            <p className="text-[11px] text-gray-300 font-medium">Find compatible canine blood donors nearby in minutes.</p>
+          </div>
+          <button
+            onClick={() => navigate("/blood-match")}
+            className="px-4 py-2.5 bg-amber-800 hover:bg-amber-700 text-white rounded-2xl text-xs font-bold whitespace-nowrap shadow-md active:scale-95 transition-all flex items-center gap-1.5 shrink-0"
+          >
+            <Droplets size={14} />
+            Find Donors
+          </button>
+        </div>
+
+        {/* Vet ID Lookup Banner Card */}
+        <div className="mt-3 bg-gray-50 border border-gray-200/80 p-4 rounded-3xl flex items-center justify-between text-left">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-amber-100 text-amber-900 rounded-full flex items-center justify-center shrink-0">
+              <Stethoscope size={18} />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-gray-900">Vet History Sync</h4>
+              <p className="text-[10px] text-gray-500 font-medium">Pull full clinic records with your Unique Vet ID.</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsVetLookupOpen(true)}
+            className="px-3 py-2 bg-black text-white rounded-xl text-[11px] font-bold hover:bg-stone-900 transition-colors shrink-0"
+          >
+            Lookup Vet ID
           </button>
         </div>
       </section>
@@ -435,6 +476,14 @@ export default function Home() {
           newPets[activePetIndex].weight = newW;
           setPets(newPets);
         }}
+      />
+
+      <VetLookupModal
+        isOpen={isVetLookupOpen}
+        onClose={() => setIsVetLookupOpen(false)}
+        petId={activePet?.id}
+        petName={activePet?.name}
+        onSuccess={() => fetchPets()}
       />
     </div>
   );

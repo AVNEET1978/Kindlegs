@@ -19,6 +19,7 @@ import Reminders from "./screens/Reminders";
 import Profile from "./screens/Profile";
 import Onboarding from "./screens/Onboarding";
 import AddPet from "./screens/AddPet";
+import BloodMatch from "./screens/BloodMatch";
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -81,6 +82,7 @@ export default function App() {
           <Route path="/reminders" element={<Reminders />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/add-pet" element={<AddPet />} />
+          <Route path="/blood-match" element={<BloodMatch />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Shell>

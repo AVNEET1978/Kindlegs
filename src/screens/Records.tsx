@@ -3,7 +3,8 @@ import { db, auth } from "../lib/firebase";
 import { useNavigate } from "react-router-dom";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import { motion } from "framer-motion";
-import { Search, Beaker, Pill, Activity, FileText, Stethoscope, ChevronRight, Bell, ShieldCheck } from "lucide-react";
+import { Search, Beaker, Pill, Activity, FileText, Stethoscope, ChevronRight, Bell, ShieldCheck, Download } from "lucide-react";
+import VetLookupModal from "../components/VetLookupModal";
 
 interface Pet {
   id: string;
@@ -22,6 +23,7 @@ export default function Records() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isVetLookupOpen, setIsVetLookupOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -157,18 +159,27 @@ export default function Records() {
         </div>
       )}
 
-      {/* Search Input */}
-      <div className="relative">
-        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-gray-400">
-          <Search size={16} />
+      {/* Search Input & Vet Lookup */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-gray-400">
+            <Search size={16} />
+          </div>
+          <input 
+            type="text" 
+            placeholder="Search records" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full h-12 pl-11 pr-4 bg-gray-50 border-none rounded-2xl text-sm focus:ring-1 focus:ring-black/5 placeholder:text-gray-400"
+          />
         </div>
-        <input 
-          type="text" 
-          placeholder="Search records" 
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full h-12 pl-11 pr-4 bg-gray-50 border-none rounded-2xl text-sm focus:ring-1 focus:ring-black/5 placeholder:text-gray-400"
-        />
+        <button
+          onClick={() => setIsVetLookupOpen(true)}
+          className="h-12 px-3.5 bg-black text-white rounded-2xl text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap shadow-sm hover:bg-stone-900 transition-colors"
+        >
+          <Stethoscope size={14} className="text-amber-400" />
+          Pull Vet ID
+        </button>
       </div>
 
       {/* Filter Chips */}
@@ -238,6 +249,14 @@ export default function Records() {
           </div>
         )}
       </div>
+
+      <VetLookupModal
+        isOpen={isVetLookupOpen}
+        onClose={() => setIsVetLookupOpen(false)}
+        petId={activePet?.id}
+        petName={activePet?.name}
+        onSuccess={() => window.location.reload()}
+      />
     </div>
   );
 }
