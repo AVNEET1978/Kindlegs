@@ -7,6 +7,7 @@ export default function Onboarding() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isUnauthorizedDomain, setIsUnauthorizedDomain] = useState(false);
+  const [isAdminRestricted, setIsAdminRestricted] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const currentDomain = typeof window !== "undefined" ? window.location.hostname : "kindlegs-eosin.vercel.app";
@@ -15,6 +16,7 @@ export default function Onboarding() {
     setLoading(true);
     setErrorMsg(null);
     setIsUnauthorizedDomain(false);
+    setIsAdminRestricted(false);
     try {
       await signInWithGoogle();
     } catch (err: any) {
@@ -23,6 +25,8 @@ export default function Onboarding() {
       const message = err?.message || String(err);
       if (message.includes("auth/unauthorized-domain") || message.includes("unauthorized-domain")) {
         setIsUnauthorizedDomain(true);
+      } else if (message.includes("auth/admin-restricted-operation") || message.includes("admin-restricted-operation")) {
+        setIsAdminRestricted(true);
       } else {
         setErrorMsg(message || "Sign in failed. Please try again or continue as guest.");
       }
@@ -32,12 +36,18 @@ export default function Onboarding() {
   const handleGuestSignIn = async () => {
     setLoading(true);
     setErrorMsg(null);
+    setIsAdminRestricted(false);
     try {
       await signInWithGuest();
     } catch (err: any) {
       console.error("Guest auth error:", err);
       setLoading(false);
-      setErrorMsg(err?.message || "Failed to start guest session.");
+      const message = err?.message || String(err);
+      if (message.includes("auth/admin-restricted-operation") || message.includes("admin-restricted-operation")) {
+        setIsAdminRestricted(true);
+      } else {
+        setErrorMsg(err?.message || "Failed to start guest session.");
+      }
     }
   };
 
@@ -118,6 +128,30 @@ export default function Onboarding() {
                 <Shield size={14} />
                 Continue as Guest (Demo Mode)
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Admin Restricted Operation Help Card */}
+        {isAdminRestricted && (
+          <div className="p-5 bg-red-50/90 border border-red-200/80 rounded-3xl text-left space-y-3 animate-in fade-in zoom-in-95 duration-200 shadow-sm">
+            <div className="flex items-center gap-2 text-red-800 font-bold text-sm">
+              <AlertCircle size={18} className="text-red-600 shrink-0" />
+              <span>Authentication Provider Disabled</span>
+            </div>
+            <p className="text-xs text-red-900/80 leading-relaxed font-medium">
+              Firebase returned <code className="bg-red-100 px-1 py-0.5 rounded font-mono text-[10px]">auth/admin-restricted-operation</code>. This error happens because <strong>Google Sign-In</strong> or <strong>Anonymous Sign-In</strong> is disabled in your Firebase project configuration.
+            </p>
+
+            <div className="text-[11px] text-red-900/80 space-y-1 bg-white/80 border border-red-200 p-3 rounded-2xl">
+              <p className="font-bold text-black">To enable in Firebase Console:</p>
+              <ol className="list-decimal list-inside space-y-1 pt-1 font-medium text-gray-700">
+                <li>Go to <a href="https://console.firebase.google.com" target="_blank" rel="noreferrer" className="text-blue-600 underline font-bold">Firebase Console</a></li>
+                <li>Select project <code className="bg-gray-100 px-1 font-mono text-[10px]">ai-studio-4090d8e2-33b6-496b-85fe-09039490be40</code></li>
+                <li>Go to <strong>Authentication</strong> &rarr; <strong>Sign-in method</strong> tab</li>
+                <li>Click <strong>Google</strong> &rarr; Enable &rarr; Save</li>
+                <li>Click <strong>Anonymous</strong> &rarr; Enable &rarr; Save</li>
+              </ol>
             </div>
           </div>
         )}
