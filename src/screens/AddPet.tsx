@@ -21,6 +21,13 @@ export default function AddPet() {
     gender: "male",
     weight: "",
     color: "",
+    microchip: "",
+    spayedNeutered: true,
+    insuranceProvider: "",
+    insurancePolicy: "",
+    vetName: "",
+    vetPhone: "",
+    emergencyPhone: "",
   });
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -231,7 +238,7 @@ export default function AddPet() {
                 type="number"
                 step="0.1"
                 placeholder="0.0"
-                className="w-full h-14 px-4 bg-grey-soft border border-grey-mid rounded-[16px] focus:ring-1 focus:ring-black outline-none text-center"
+                className="w-full h-14 px-4 bg-grey-soft border border-grey-mid rounded-[16px] focus:ring-1 focus:ring-black outline-none text-center font-bold"
                 value={formData.weight}
                 onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
               />
@@ -243,10 +250,85 @@ export default function AddPet() {
               <input
                 type="text"
                 placeholder="e.g. Golden"
-                className="w-full h-14 px-4 bg-grey-soft border border-grey-mid rounded-[16px] focus:ring-1 focus:ring-black outline-none text-center"
+                className="w-full h-14 px-4 bg-grey-soft border border-grey-mid rounded-[16px] focus:ring-1 focus:ring-black outline-none text-center font-bold"
                 value={formData.color}
                 onChange={(e) => setFormData({ ...formData, color: e.target.value })}
               />
+            </div>
+          </div>
+
+          {/* Additional Passport & Vet Info */}
+          <div className="pt-4 border-t border-gray-100 space-y-4">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-black text-center">Digital Passport & Vet Contacts</p>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-grey-text opacity-60 block text-center">
+                Microchip Number
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. 985141002938102"
+                className="w-full h-14 px-4 bg-grey-soft border border-grey-mid rounded-[16px] focus:ring-1 focus:ring-black outline-none text-center font-mono text-sm font-bold"
+                value={formData.microchip}
+                onChange={(e) => setFormData({ ...formData, microchip: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-grey-text opacity-60 block text-center">
+                  Insurance Provider
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Petplan"
+                  className="w-full h-14 px-4 bg-grey-soft border border-grey-mid rounded-[16px] focus:ring-1 focus:ring-black outline-none text-center text-xs font-bold"
+                  value={formData.insuranceProvider}
+                  onChange={(e) => setFormData({ ...formData, insuranceProvider: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-grey-text opacity-60 block text-center">
+                  Spayed / Neutered
+                </label>
+                <select
+                  className="w-full h-14 px-4 bg-grey-soft border border-grey-mid rounded-[16px] focus:ring-1 focus:ring-black outline-none appearance-none text-center font-bold"
+                  value={formData.spayedNeutered ? "yes" : "no"}
+                  onChange={(e) => setFormData({ ...formData, spayedNeutered: e.target.value === "yes" })}
+                >
+                  <option value="yes">Yes (Neutered)</option>
+                  <option value="no">No (Intact)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-grey-text opacity-60 block text-center">
+                  Primary Vet Clinic
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Valley Vet"
+                  className="w-full h-14 px-4 bg-grey-soft border border-grey-mid rounded-[16px] focus:ring-1 focus:ring-black outline-none text-center text-xs font-bold"
+                  value={formData.vetName}
+                  onChange={(e) => setFormData({ ...formData, vetName: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-grey-text opacity-60 block text-center">
+                  Vet Phone
+                </label>
+                <input
+                  type="tel"
+                  placeholder="+1 555-0192"
+                  className="w-full h-14 px-4 bg-grey-soft border border-grey-mid rounded-[16px] focus:ring-1 focus:ring-black outline-none text-center text-xs font-bold"
+                  value={formData.vetPhone}
+                  onChange={(e) => setFormData({ ...formData, vetPhone: e.target.value })}
+                />
+              </div>
             </div>
           </div>
         </div>

@@ -1,8 +1,10 @@
 {
   "name": "Kindlegs",
-  "description": "A premium pet health record digital companion. Never lose your pet's medical history with AI-powered record scanning, vaccine tracking, and automated reminders.",
+  "description": "A digital pet record & passport app. Features AI-powered medical record scanning, weight tracking, digital pet passport sharing, vaccine timeline, and smart care reminders.",
   "requestFramePermissions": [
     "camera"
   ],
-  "majorCapabilities": []
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
