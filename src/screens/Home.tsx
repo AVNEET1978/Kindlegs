@@ -156,7 +156,7 @@ export default function Home() {
           <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 2 }} className="text-3xl">🐾</motion.div>
         </div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-black">Welcome to Kindlegs + Boop</h2>
+          <h2 className="text-2xl font-black">Welcome to Kindlegs</h2>
           <p className="text-gray-500 text-xs leading-relaxed max-w-xs mx-auto">
             Create your pet’s digital passport, track weight, log medical history, and set care reminders.
           </p>
@@ -212,7 +212,7 @@ export default function Home() {
               onClick={() => setIsPassportOpen(true)}
               className="text-[10px] font-mono text-gray-400 hover:text-white flex items-center gap-1 transition-colors"
             >
-              <QrCode size={12} /> #BOOP-{activePet.id?.substring(0, 5).toUpperCase() || "PASS"}
+              <QrCode size={12} /> #KL-{activePet.id?.substring(0, 5).toUpperCase() || "PASS"}
             </button>
           </div>
 

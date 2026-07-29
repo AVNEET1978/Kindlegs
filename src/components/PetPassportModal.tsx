@@ -15,7 +15,7 @@ export default function PetPassportModal({ pet, isOpen, onClose, recentRecords =
 
   if (!isOpen || !pet) return null;
 
-  const passportId = `BOOP-PASSPORT-${pet.id ? pet.id.substring(0, 6).toUpperCase() : "882910"}`;
+  const passportId = `KL-PASSPORT-${pet.id ? pet.id.substring(0, 6).toUpperCase() : "882910"}`;
   const getAge = (dob: string) => {
     if (!dob) return "N/A";
     const birthDate = new Date(dob);
@@ -93,7 +93,7 @@ Share Link: ${window.location.origin}`;
                 <div className="w-6 h-6 bg-amber-400 rounded-full flex items-center justify-center text-black font-black text-[10px]">
                   KL
                 </div>
-                <span className="text-[10px] font-bold tracking-widest uppercase text-amber-300">KINDLEGS • BOOP VERIFIED</span>
+                <span className="text-[10px] font-bold tracking-widest uppercase text-amber-300">KINDLEGS VERIFIED</span>
               </div>
               <span className="text-[9px] font-mono text-gray-400">{new Date().getFullYear()} EXP: LIFETIME</span>
             </div>
