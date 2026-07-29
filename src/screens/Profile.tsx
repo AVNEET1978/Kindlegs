@@ -88,10 +88,12 @@ export default function Profile() {
           </div>
         </div>
         <div className="space-y-1">
-          <h2 className="text-2xl font-display font-black">{auth.currentUser?.displayName || "Kindlegs Member"}</h2>
+          <h2 className="text-2xl font-display font-black">
+            {auth.currentUser?.displayName || (auth.currentUser?.isAnonymous ? "Guest Companion" : "Kindlegs Member")}
+          </h2>
           <div className="flex items-center gap-1.5 justify-center text-gray-400 text-sm font-medium">
             <Mail size={14} />
-            {auth.currentUser?.email}
+            {auth.currentUser?.email || (auth.currentUser?.isAnonymous ? "Guest Mode (Anonymous Session)" : "Connected Member")}
           </div>
         </div>
       </header>

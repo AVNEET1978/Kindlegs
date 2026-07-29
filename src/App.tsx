@@ -34,12 +34,13 @@ export default function App() {
         try {
           const userSnap = await getDoc(userRef);
           if (!userSnap.exists()) {
-            await setDoc(userRef, {
-              email: user.email,
-              displayName: user.displayName,
-              photoURL: user.photoURL,
+            const userData: any = {
+              displayName: user.displayName || (user.isAnonymous ? "Guest Companion" : "Pet Parent"),
               createdAt: serverTimestamp(),
-            });
+            };
+            if (user.email) userData.email = user.email;
+            if (user.photoURL) userData.photoURL = user.photoURL;
+            await setDoc(userRef, userData);
           }
         } catch (error) {
           console.error("Auth sync error:", error);
